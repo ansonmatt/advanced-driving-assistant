@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADAS Co-Pilot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Glassmorphic Container */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        /* Setup Screen */
+        #setup-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            padding: 20px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .header-logo {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+
+        .config-card {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 16px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .btn {
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            margin-top: 12px;
+        }
+
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-danger { background: linear-gradient(135deg, var(--danger), #b91c1c); }
+
+        /* Video Screen (Dashboard) */
+        #video-screen {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            background-color: #000;
+            position: relative;
+        }
+
+        .video-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Floating controls over video */
+        .floating-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: rgba(10, 15, 30, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 10px 20px;
+            border-radius: 100px;
+            border: 1px solid var(--glass-border);
+            white-space: nowrap;
+        }
+
+        .control-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 100px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+        }
+
+        .control-btn:hover { background: rgba(255,255,255,0.1); }
+        .control-btn:active { transform: scale(0.96); }
+
+        .control-btn.stop { color: #ef4444; }
+
+        /* Lane toggle — turns green when ON, muted when OFF */
+        #lane-btn { color: var(--success); }
+        #lane-btn.lanes-off { color: var(--text-muted); }
+
+        /* Voice button — pulses red while recording */
+        #voice-btn { color: #60a5fa; position: relative; }
+        #voice-btn.recording {
+            color: #ef4444;
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+            50%       { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+        }
+
+        /* Divider between buttons */
+        .ctrl-divider {
+            width: 1px;
+            height: 20px;
+            background: rgba(255,255,255,0.15);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- SETUP SCREEN -->
+    <div id="setup-screen">
+        <h1 class="header-logo">ADAS Co-Pilot</h1>
+        <p class="header-subtitle">AI-Powered Driver Assistance</p>
+
+        <div class="glass-panel config-card">
+            <div class="form-group">
+                <label for="source">Camera Source</label>
+                <select id="source">
+                    <option value="0" {% if config.get('source', '') == '0' %}selected{% endif %}>Phone Camera (Webcam 0)</option>
+                    <option value="1" {% if config.get('source', '') == '1' %}selected{% endif %}>External Dashcam (Webcam 1)</option>
+                    <option value="videos/dashcam1.mp4" {% if config.get('source', '') == 'videos/dashcam1.mp4' %}selected{% endif %}>Dashcam 1 (Urban)</option>
+                    <option value="videos/highway.mp4" {% if config.get('source', '') == 'videos/highway.mp4' %}selected{% endif %}>Highway Drive</option>
+                    <option value="videos/pothole.mp4" {% if config.get('source', '') == 'videos/pothole.mp4' %}selected{% endif %}>Pothole Hazards</option>
+                    <option value="videos/test1.mp4" {% if config.get('source', '') == 'videos/test1.mp4' %}selected{% endif %}>Test Footage 1</option>
+                    <option value="videos/test3.mp4" {% if config.get('source', '') == 'videos/test3.mp4' %}selected{% endif %}>Test Footage 3</option>
+                    <option value="videos/test4.mp4" {% if config.get('source', '') == 'videos/test4.mp4' %}selected{% endif %}>Test Footage 4</option>
+                </select>
+            </div>
+
+            <button class="btn btn-primary" id="start-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Launch Co-Pilot
+            </button>
+        </div>
+    </div>
+
+    <!-- DASHBOARD SCREEN -->
+    <div id="video-screen">
+        <div class="video-container">
+            <img id="video-feed" alt="ADAS Video Stream">
+
+            <div class="floating-controls">
+                <!-- Lane Detection Toggle -->
+                <button class="control-btn" id="lane-btn" title="Toggle Lane Detection">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="2" x2="12" y2="22"/><path d="M4 6l4 4M4 18l8-8M20 6l-4 4M20 18l-8-8"/>
+                    </svg>
+                    Lanes
+                </button>
+
+                <div class="ctrl-divider"></div>
+
+                <!-- Push-to-Speak -->
+                <button class="control-btn" id="voice-btn" title="Hold to speak to Co-Pilot">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    Ask Co-Pilot
+                </button>
+
+                <div class="ctrl-divider"></div>
+
+                <!-- End Trip -->
+                <button class="control-btn stop" id="stop-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    </svg>
+                    End Trip
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const setupScreen  = document.getElementById('setup-screen');
+        const videoScreen  = document.getElementById('video-screen');
+        const startBtn     = document.getElementById('start-btn');
+        const stopBtn      = document.getElementById('stop-btn');
+        const laneBtn      = document.getElementById('lane-btn');
+        const voiceBtn     = document.getElementById('voice-btn');
+        const sourceSelect = document.getElementById('source');
+        const videoElement = document.getElementById('video-feed');
+
+        // ── Fullscreen helpers ──────────────────────────────────────────────
+        function openFullscreen() {
+            const el = document.documentElement;
+            if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        }
+        function closeFullscreen() {
+            if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        }
+
+        // ── Start ───────────────────────────────────────────────────────────
+        startBtn.addEventListener('click', async () => {
+            startBtn.innerHTML = "Starting Engine...";
+            startBtn.disabled = true;
+            try {
+                await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source: sourceSelect.value })
+                });
+
+                const res = await fetch('/api/start', { method: 'POST' });
+                if (res.ok) {
+                    openFullscreen();
+                    setupScreen.style.display = 'none';
+                    videoScreen.style.display = 'flex';
+                    videoElement.src = "/video_feed?" + Date.now();
+                    syncLaneState();
+                }
+            } catch (err) {
+                alert("Failed to connect to server: " + err);
+            } finally {
+                startBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Launch Co-Pilot`;
+                startBtn.disabled = false;
+            }
+        });
+
+        // ── Stop ────────────────────────────────────────────────────────────
+        stopBtn.addEventListener('click', async () => {
+            await fetch('/api/stop', { method: 'POST' });
+            videoElement.src = "";
+            closeFullscreen();
+            videoScreen.style.display = 'none';
+            setupScreen.style.display = 'flex';
+        });
+
+        // ── Lane Toggle ─────────────────────────────────────────────────────
+        let lanesOn = true;
+
+        async function syncLaneState() {
+            try {
+                const r = await fetch('/api/lanes_state');
+                const d = await r.json();
+                lanesOn = d.lanes_enabled;
+                updateLaneBtn();
+            } catch (_) {}
+        }
+
+        function updateLaneBtn() {
+            if (lanesOn) {
+                laneBtn.classList.remove('lanes-off');
+                laneBtn.title = "Lane Detection ON — tap to disable";
+            } else {
+                laneBtn.classList.add('lanes-off');
+                laneBtn.title = "Lane Detection OFF — tap to enable";
+            }
+        }
+
+        laneBtn.addEventListener('click', async () => {
+            try {
+                const r = await fetch('/api/toggle_lanes', { method: 'POST' });
+                const d = await r.json();
+                lanesOn = d.lanes_enabled;
+                updateLaneBtn();
+            } catch (err) {
+                console.error("Lane toggle failed:", err);
+            }
+        });
+
+        // ── Push-to-Speak ───────────────────────────────────────────────────
+        let mediaRecorder = null;
+        let audioChunks   = [];
+        let micStream     = null;
+
+        async function getMic() {
+            if (micStream) return micStream;
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                return micStream;
+            } catch (e) {
+                alert("Microphone access denied. Please allow mic access and try again.");
+                return null;
+            }
+        }
+
+        async function startRecording() {
+            const stream = await getMic();
+            if (!stream) return;
+            audioChunks = [];
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus'
+                : 'audio/webm';
+            mediaRecorder = new MediaRecorder(stream, { mimeType });
+            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+            mediaRecorder.start(100); // collect chunks every 100ms
+            voiceBtn.classList.add('recording');
+            voiceBtn.querySelector('svg').style.fill = '#ef4444';
+        }
+
+        async function stopRecording() {
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+            return new Promise(resolve => {
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+                    // Only send if at least 500ms of audio
+                    if (blob.size > 1000) {
+                        try {
+                            await fetch('/api/voice', {
+                                method: 'POST',
+                                headers: { 'Content-Type': blob.type },
+                                body: blob
+                            });
+                        } catch (err) { console.error("Voice send failed:", err); }
+                    }
+                    voiceBtn.classList.remove('recording');
+                    voiceBtn.querySelector('svg').style.fill = '';
+                    resolve();
+                };
+                mediaRecorder.stop();
+            });
+        }
+
+        // Hold-to-speak: mousedown / touchstart = record, mouseup / touchend = send
+        voiceBtn.addEventListener('mousedown',  e => { e.preventDefault(); startRecording(); });
+        voiceBtn.addEventListener('touchstart', e => { e.preventDefault(); startRecording(); }, { passive: false });
+        voiceBtn.addEventListener('mouseup',    e => { e.preventDefault(); stopRecording(); });
+        voiceBtn.addEventListener('touchend',   e => { e.preventDefault(); stopRecording(); }, { passive: false });
+        // Safety: if pointer leaves the button while held, still stop
+        voiceBtn.addEventListener('mouseleave', () => { if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording(); });
+    </script>
+</body>
+</html>

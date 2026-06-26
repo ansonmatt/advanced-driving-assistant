@@ -1,0 +1,4 @@
+{
+  "source": "videos/pothole.mp4",
+  "weights": "models/ADAS_new.pt"
+}
