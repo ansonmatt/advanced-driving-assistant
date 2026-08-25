@@ -1,4 +1,4 @@
-#Advanced AI Driving Assistant
+# Advanced AI Driving Assistant
 
 An Advanced Driver Assistance System (ADAS) combined with a real-time AI Voice Assistant, designed to run natively on a dashcam or smartphone feed. This project processes video streams in real-time, detects objects and hazards on the road, calculates distances using perspective transformations, and provides intelligent, conversational audio feedback to the driver.
 
